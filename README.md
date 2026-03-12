@@ -96,6 +96,16 @@ The expensive calls (strong model) happen only **twice**. The N parallel calls u
 
 > **Tip**: If your lightweight model supports a "thinking" or "reasoning" mode, disable it for retrieval. A simple true/false judgment doesn't need chain-of-thought, and disabling it significantly reduces latency.
 
+## Why Small Models Work
+
+Retrieval in VectorlessRAG is not open-ended reasoning. It is a **massively parallel relevance classification task**. That makes it a good fit for smaller retrieval models that can run at much higher concurrency.
+
+- **Smaller models can run wider** — lower per-call cost and latency make it practical to scan many segments at once.
+- **Chunk size can follow model capability** — stronger retrieval models can handle larger segments, while smaller models often benefit from finer-grained splits.
+- **Parallelism compensates for model size** — instead of asking one expensive model to read everything, you let many cheap calls cover the corpus together.
+
+In practice, chunk size is not a fixed preprocessing choice. It is a runtime optimization knob tied to model capability, available concurrency, and provider rate limits.
+
 ## vs Vector RAG
 
 ```
@@ -189,6 +199,10 @@ vectorless-rag/
 ├── docs/            Your .md files here
 └── logs/            Auto-generated query logs
 ```
+
+## A Large Design Space
+
+VectorlessRAG exposes a large tuning surface: retrieval model size, chunk size, overlap, concurrency, provider mix, and summarization strategy can all be adjusted independently. That makes it not just a usable system, but also a strong platform for experimentation.
 
 ## Limitations & Roadmap
 
