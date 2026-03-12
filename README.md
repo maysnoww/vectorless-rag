@@ -35,8 +35,9 @@ N document segments → N concurrent LLM calls → Filter relevant → Summarize
 
 Three design principles:
 - **Zero preprocessing** — no vectorization, no indexing, no classification. Upload and query instantly.
-- **Full coverage** — every segment is checked. No top-K recall. No missed information.
+- **Full coverage** — every segment is checked. No top-K approximation. Higher recall on bounded corpora.
 - **Concurrency over intelligence** — replace retrieval algorithm sophistication with raw parallel throughput.
+- **Less context fragmentation** — rely less on chunk-first similarity search, and more on direct reading of each segment.
 
 This turns the retrieval problem into a pure **concurrent I/O problem**.
 
@@ -91,7 +92,7 @@ The key insight: **retrieval judgment is a trivially simple task**. The LLM only
 | **Retrieval** | Judge relevance per segment | **Lightweight / mini model** | N |
 | **Summarizer** | Synthesize final answer | Strong model | 1 |
 
-The expensive calls (strong model) happen only **twice**. The N parallel calls use the cheapest, fastest model you have. This keeps total cost low even with dozens of segments.
+The expensive calls (strong model) happen only **twice**. The N parallel calls use the cheapest, fastest model you have. This keeps total cost low even with dozens of segments, while parallelism keeps query latency competitive on bounded corpora.
 
 > **Tip**: If your lightweight model supports a "thinking" or "reasoning" mode, disable it for retrieval. A simple true/false judgment doesn't need chain-of-thought, and disabling it significantly reduces latency.
 
@@ -103,9 +104,11 @@ The expensive calls (strong model) happen only **twice**. The N parallel calls u
 Architecture:       Embedding + VectorDB + LLM    LLM only
 Preprocessing:      Required (minutes)            None (zero)
 Retrieval method:   Cosine similarity             LLM comprehension
+Latency profile:    Fast after indexing           Competitive via parallelism
 Recall strategy:    Top-K nearest                 Full scan
-Recall risk:        May miss (sim ≠ relevance)    No miss (full coverage)
+Recall risk:        May miss (sim ≠ relevance)    Lower miss risk from full coverage
 Infrastructure:     VectorDB + Embedding service   Single LLM API endpoint
+Context handling:   Chunk-first retrieval         Less context fragmentation
 Explainability:     Chunk ID only                 File + line range
 Setup time:         Hours (pipeline + tuning)      Minutes (config API keys)
 ```
@@ -198,10 +201,11 @@ vectorless-rag/
 
 ## Best Suited For
 
-- **Legal case analysis** — cross-referencing contracts, agreements, correspondence
-- **Due diligence** — scanning document rooms for specific facts
-- **Compliance review** — checking multiple policy documents
-- **Research** — finding information across scattered notes and papers
+- **Cross-document fact finding** — locating specific facts scattered across multiple files
+- **Research** — finding information across notes, reports, and papers
+- **Internal knowledge-base QA** — answering questions over a bounded corpus without building an index
+- **Policy and operations review** — checking procedures, guidelines, and internal documentation
+- **Audit and due diligence** — scanning document sets for evidence, inconsistencies, or missing details
 - Any scenario where **recall matters more than per-query cost**, and document volume is bounded
 
 ## License
